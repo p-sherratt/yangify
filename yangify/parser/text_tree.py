@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Callable
 
 
 def _attach_data_to_path(
@@ -41,6 +41,7 @@ def parse_indented_config(
     current_indent: int = 0,
     previous_indent: int = 0,
     nested: bool = False,
+    filter_func: Callable[[str], str] = None,
 ) -> Dict[str, Any]:
     """
     This method reads a configuration that conforms to a very poor industry standard
@@ -143,7 +144,10 @@ def parse_indented_config(
             break
         line = config.pop(0).rstrip()
 
-        if line.lstrip().startswith("!"):
+        if filter_func:
+            line = filter_func(line)
+
+        if line == None:
             continue
 
         last = line.lstrip()
@@ -154,7 +158,7 @@ def parse_indented_config(
 
         if leading_spaces > current_indent:
             current = parse_indented_config(
-                config, leading_spaces, current_indent, True
+                config, leading_spaces, current_indent, True, filter_func
             )
             _attach_data_to_path(parsed, last, current, nested)
         elif leading_spaces < current_indent:
@@ -163,7 +167,7 @@ def parse_indented_config(
         else:
             if not nested:
                 current = parse_indented_config(
-                    config, leading_spaces, current_indent, True
+                    config, leading_spaces, current_indent, True, filter_func
                 )
                 _attach_data_to_path(parsed, last, current, nested)
             else:
